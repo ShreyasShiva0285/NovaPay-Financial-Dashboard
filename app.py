@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -60,6 +61,17 @@ st.markdown("""
         padding-left: 10px;
         margin-top: 15px;
     }
+    .form-container {
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 5px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        margin-bottom: 1.5rem;
+    }
+    .stExpander {
+        border: none !important;
+        box-shadow: 0 0 5px rgba(0,0,0,0.05);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -77,6 +89,88 @@ def calculate_percent_change(current, previous):
     if previous == 0:
         return 100 if current > 0 else -100
     return ((current - previous) / abs(previous)) * 100
+
+# Personal Financial Information Form
+st.markdown('<div class="title-container">', unsafe_allow_html=True)
+st.title("NovaPay Financial Dashboard")
+st.markdown("Track key metrics and financial health of your FinTech business.")
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Personal Finance Form Section
+st.markdown("## Personal Financial Information")
+st.markdown('<div class="form-container">', unsafe_allow_html=True)
+
+# Create two columns for the form
+col1, col2 = st.columns(2)
+
+with col1:
+    name = st.text_input("Full Name")
+    age = st.number_input("Age", min_value=18, max_value=100, step=1)
+
+with col2:
+    monthly_salary = st.number_input("Monthly Salary (£)", min_value=0.0, step=100.0)
+    monthly_expenses = st.number_input("Monthly Expenses (£)", min_value=0.0, step=50.0)
+
+# Expense Breakdown
+st.subheader("Monthly Expense Breakdown")
+
+expense_categories = {
+    "Housing/Rent": 0.0,
+    "Utilities": 0.0,
+    "Groceries": 0.0,
+    "Transportation": 0.0,
+    "Healthcare": 0.0,
+    "Entertainment": 0.0,
+    "Other": 0.0
+}
+
+# Create multiple columns for expense categories
+cols = st.columns(3)
+category_values = {}
+
+for i, (category, _) in enumerate(expense_categories.items()):
+    with cols[i % 3]:
+        category_values[category] = st.number_input(f"{category} (£)", min_value=0.0, step=10.0)
+
+total_expenses = sum(category_values.values())
+
+# Show calculated summaries
+if name and age > 0 and monthly_salary > 0:
+    savings = monthly_salary - total_expenses
+    savings_rate = (savings / monthly_salary * 100) if monthly_salary > 0 else 0
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.info(f"Total Monthly Expenses: {format_currency(total_expenses)}")
+        st.info(f"Monthly Savings: {format_currency(savings)}")
+    
+    with col2:
+        st.info(f"Savings Rate: {savings_rate:.1f}%")
+        months_emergency = savings * 6 if savings > 0 else 0
+        st.info(f"6 Month Emergency Fund Target: {format_currency(months_emergency)}")
+    
+    # Create a pie chart for expense breakdown if there are any expenses
+    if total_expenses > 0:
+        expense_data = {category: value for category, value in category_values.items() if value > 0}
+        if expense_data:
+            fig = px.pie(
+                values=list(expense_data.values()),
+                names=list(expense_data.keys()),
+                title="Your Expense Distribution",
+                hole=0.4
+            )
+            fig.update_layout(height=300)
+            st.plotly_chart(fig, use_container_width=True)
+
+# Save button
+if st.button("Save Financial Information"):
+    if name and age > 0 and monthly_salary > 0:
+        st.success(f"Financial information for {name} has been saved successfully!")
+    else:
+        st.error("Please fill in all required fields (Name, Age, Monthly Salary)")
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Generate financial data similar to your React app
 def generate_financial_data(months=12):
@@ -185,128 +279,124 @@ mom_revenue_growth = calculate_percent_change(current_month['revenue'], previous
 mom_users_growth = calculate_percent_change(current_month['users'], previous_month['users'])
 mom_profit_growth = calculate_percent_change(current_month['profit'], previous_month['profit'])
 
-# Main dashboard
-st.markdown('<div class="title-container">', unsafe_allow_html=True)
-st.title("NovaPay Financial Dashboard")
-st.markdown("Track key metrics and financial health of your FinTech business.")
-st.markdown('</div>', unsafe_allow_html=True)
+# Display dashboard metrics in an expandable section
+with st.expander("Business Dashboard Metrics", expanded=False):
+    # KPI metrics
+    col1, col2, col3, col4 = st.columns(4)
 
-# KPI metrics
-col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+        st.subheader("Monthly Revenue")
+        st.markdown(f"### {format_currency(current_month['revenue'])}")
+        growth_class = "positive" if mom_revenue_growth > 0 else "negative"
+        st.markdown(f"<span class='{growth_class}'>{'↑' if mom_revenue_growth > 0 else '↓'} {abs(mom_revenue_growth):.1f}%</span>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-with col1:
-    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-    st.subheader("Monthly Revenue")
-    st.markdown(f"### {format_currency(current_month['revenue'])}")
-    growth_class = "positive" if mom_revenue_growth > 0 else "negative"
-    st.markdown(f"<span class='{growth_class}'>{'↑' if mom_revenue_growth > 0 else '↓'} {abs(mom_revenue_growth):.1f}%</span>", unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    with col2:
+        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+        st.subheader("Monthly Profit/Loss")
+        st.markdown(f"### {format_currency(current_month['profit'])}")
+        growth_class = "positive" if mom_profit_growth > 0 else "negative"
+        st.markdown(f"<span class='{growth_class}'>{'↑' if mom_profit_growth > 0 else '↓'} {abs(mom_profit_growth):.1f}%</span>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-with col2:
-    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-    st.subheader("Monthly Profit/Loss")
-    st.markdown(f"### {format_currency(current_month['profit'])}")
-    growth_class = "positive" if mom_profit_growth > 0 else "negative"
-    st.markdown(f"<span class='{growth_class}'>{'↑' if mom_profit_growth > 0 else '↓'} {abs(mom_profit_growth):.1f}%</span>", unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    with col3:
+        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+        st.subheader("Total Users")
+        st.markdown(f"### {int(current_month['users']):,}")
+        growth_class = "positive" if mom_users_growth > 0 else "negative"
+        st.markdown(f"<span class='{growth_class}'>{'↑' if mom_users_growth > 0 else '↓'} {abs(mom_users_growth):.1f}%</span>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-with col3:
-    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-    st.subheader("Total Users")
-    st.markdown(f"### {int(current_month['users']):,}")
-    growth_class = "positive" if mom_users_growth > 0 else "negative"
-    st.markdown(f"<span class='{growth_class}'>{'↑' if mom_users_growth > 0 else '↓'} {abs(mom_users_growth):.1f}%</span>", unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    with col4:
+        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+        st.subheader("Runway")
+        if current_month['profit'] > 0:
+            runway_text = "Profitable"
+        else:
+            runway_text = f"{int(current_month['runway'])} months"
+        st.markdown(f"### {runway_text}")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-with col4:
-    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-    st.subheader("Runway")
-    if current_month['profit'] > 0:
-        runway_text = "Profitable"
-    else:
-        runway_text = f"{int(current_month['runway'])} months"
-    st.markdown(f"### {runway_text}")
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Charts
+    st.subheader("Revenue vs Expenses")
 
-# Charts
-st.subheader("Revenue vs Expenses")
-
-# Using plotly instead of altair for the revenue vs expenses chart
-fig = px.bar(
-    df,
-    x="month",
-    y=["revenue", "expenses"],
-    barmode="group",
-    labels={"value": "Amount (£)", "variable": "Category"},
-    color_discrete_map={"revenue": "#3498ff", "expenses": "#f97316"}
-)
-fig.update_layout(height=300)
-st.plotly_chart(fig, use_container_width=True)
-
-# User Growth Chart - using plotly instead of altair
-st.subheader("User Growth")
-user_fig = px.line(
-    df, 
-    x="month", 
-    y="users",
-    markers=True,
-    labels={"users": "Users", "month": "Month"}
-)
-user_fig.update_layout(height=300)
-st.plotly_chart(user_fig, use_container_width=True)
-
-# Pie Charts
-col1, col2, col3 = st.columns([1,1,1])
-
-with col1:
-    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-    st.subheader("Expense Breakdown")
-    fig = px.pie(expense_breakdown, values='value', names='category', hole=0.4)
-    fig.update_layout(height=350)
+    # Using plotly instead of altair for the revenue vs expenses chart
+    fig = px.bar(
+        df,
+        x="month",
+        y=["revenue", "expenses"],
+        barmode="group",
+        labels={"value": "Amount (£)", "variable": "Category"},
+        color_discrete_map={"revenue": "#3498ff", "expenses": "#f97316"}
+    )
+    fig.update_layout(height=300)
     st.plotly_chart(fig, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
 
-with col2:
-    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-    st.subheader("Revenue Streams")
-    fig = px.pie(revenue_breakdown, values='value', names='category', 
-                 color_discrete_sequence=['#3498ff', '#1364e4', '#1651b9', '#132d59'], hole=0.4)
-    fig.update_layout(height=350)
-    st.plotly_chart(fig, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    # User Growth Chart - using plotly instead of altair
+    st.subheader("User Growth")
+    user_fig = px.line(
+        df, 
+        x="month", 
+        y="users",
+        markers=True,
+        labels={"users": "Users", "month": "Month"}
+    )
+    user_fig.update_layout(height=300)
+    st.plotly_chart(user_fig, use_container_width=True)
 
-with col3:
-    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-    st.subheader("Key Unit Economics")
-    
-    # LTV/CAC Ratio
-    ltv_cac = current_month['ltv_cac_ratio']
-    st.markdown("**LTV/CAC Ratio**")
-    progress_color = "green" if ltv_cac >= 3 else "orange"
-    st.progress(min(ltv_cac/10, 1.0), text=f"{ltv_cac:.1f}x")
-    st.caption("Target: 3.0x")
-    
-    # Monthly ARPU
-    st.markdown("**Monthly ARPU**")
-    arpu = current_month['arpu']
-    st.progress(min(arpu/(arpu*1.5), 1.0), text=f"{format_currency_k(arpu)}")
-    st.caption(f"Target: {format_currency_k(arpu*1.2)}")
-    
-    # CAC
-    st.markdown("**Customer Acquisition Cost**")
-    cac = current_month['cac']
-    progress_color = "green" if cac < arpu * 6 else "red"
-    st.progress(min(cac/(cac*2), 1.0), text=f"{format_currency_k(cac)}")
-    st.caption(f"Target: {format_currency_k(cac*0.8)}")
-    
-    # Profit Margin
-    st.markdown("**Profit Margin**")
-    margin = current_month['profit_margin']
-    progress_color = "green" if margin > 0 else "red"
-    st.progress(min(margin/100, 1.0), text=f"{margin:.1f}%")
-    st.caption("Target: 20.0%")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Pie Charts
+    col1, col2, col3 = st.columns([1,1,1])
+
+    with col1:
+        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+        st.subheader("Expense Breakdown")
+        fig = px.pie(expense_breakdown, values='value', names='category', hole=0.4)
+        fig.update_layout(height=350)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:
+        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+        st.subheader("Revenue Streams")
+        fig = px.pie(revenue_breakdown, values='value', names='category', 
+                    color_discrete_sequence=['#3498ff', '#1364e4', '#1651b9', '#132d59'], hole=0.4)
+        fig.update_layout(height=350)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col3:
+        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+        st.subheader("Key Unit Economics")
+        
+        # LTV/CAC Ratio
+        ltv_cac = current_month['ltv_cac_ratio']
+        st.markdown("**LTV/CAC Ratio**")
+        progress_color = "green" if ltv_cac >= 3 else "orange"
+        st.progress(min(ltv_cac/10, 1.0), text=f"{ltv_cac:.1f}x")
+        st.caption("Target: 3.0x")
+        
+        # Monthly ARPU
+        st.markdown("**Monthly ARPU**")
+        arpu = current_month['arpu']
+        st.progress(min(arpu/(arpu*1.5), 1.0), text=f"{format_currency_k(arpu)}")
+        st.caption(f"Target: {format_currency_k(arpu*1.2)}")
+        
+        # CAC
+        st.markdown("**Customer Acquisition Cost**")
+        cac = current_month['cac']
+        progress_color = "green" if cac < arpu * 6 else "red"
+        st.progress(min(cac/(cac*2), 1.0), text=f"{format_currency_k(cac)}")
+        st.caption(f"Target: {format_currency_k(cac*0.8)}")
+        
+        # Profit Margin
+        st.markdown("**Profit Margin**")
+        margin = current_month['profit_margin']
+        progress_color = "green" if margin > 0 else "red"
+        st.progress(min(margin/100, 1.0), text=f"{margin:.1f}%")
+        st.caption("Target: 20.0%")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # Graduate Skills Tracker
 st.markdown("## Graduate Finance Analyst Skills")
