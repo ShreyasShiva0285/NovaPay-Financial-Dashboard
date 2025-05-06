@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -231,33 +230,30 @@ with col4:
 
 # Charts
 st.subheader("Revenue vs Expenses")
-chart_data = df[['month', 'revenue', 'expenses']]
-chart = alt.Chart(chart_data).transform_fold(
-    ['revenue', 'expenses'],
-    as_=['category', 'value']
-).mark_bar().encode(
-    x=alt.X('month:N', title='Month'),
-    y=alt.Y('value:Q', title='Amount (£)'),
-    color=alt.Color('category:N', scale=alt.Scale(
-        domain=['revenue', 'expenses'],
-        range=['#3498ff', '#f97316']
-    )),
-    tooltip=['month', 'category', 'value']
-).properties(
-    height=300
-)
-st.altair_chart(chart, use_container_width=True)
 
-# User Growth Chart
-st.subheader("User Growth")
-user_chart = alt.Chart(df).mark_line(point=True).encode(
-    x=alt.X('month:N', title='Month'),
-    y=alt.Y('users:Q', title='Users'),
-    tooltip=['month', 'users']
-).properties(
-    height=300
+# Using plotly instead of altair for the revenue vs expenses chart
+fig = px.bar(
+    df,
+    x="month",
+    y=["revenue", "expenses"],
+    barmode="group",
+    labels={"value": "Amount (£)", "variable": "Category"},
+    color_discrete_map={"revenue": "#3498ff", "expenses": "#f97316"}
 )
-st.altair_chart(user_chart, use_container_width=True)
+fig.update_layout(height=300)
+st.plotly_chart(fig, use_container_width=True)
+
+# User Growth Chart - using plotly instead of altair
+st.subheader("User Growth")
+user_fig = px.line(
+    df, 
+    x="month", 
+    y="users",
+    markers=True,
+    labels={"users": "Users", "month": "Month"}
+)
+user_fig.update_layout(height=300)
+st.plotly_chart(user_fig, use_container_width=True)
 
 # Pie Charts
 col1, col2, col3 = st.columns([1,1,1])
